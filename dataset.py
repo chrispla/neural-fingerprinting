@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader, Dataset
 class AudioDB(Dataset):
     """Dataset class for the training database. The files provided
     are between 29.992 and 30.488 seconds long, sampled at 22050.
-    We'll assume they are exactly 15 seconds long and trim/pad
+    We'll assume they are exactly 30 seconds long and trim/pad
     accordingly, to simplify the indexing of individual fingerprints.
     """
 
@@ -27,7 +27,7 @@ class AudioDB(Dataset):
         input_rep: str = "mel",
         input_rep_cfg: dict = None,
         # fingerprint
-        fp_len: float = 1.0,  # in seconds
+        fp_len: float = 0.5,  # in seconds
     ):
         self.root = Path(root)
         self.sr = sr
@@ -70,7 +70,7 @@ class AudioDB(Dataset):
                     sample_rate=self.sr,
                     n_fft=self.input_rep_cfg.get("n_fft", 1024),
                     hop_length=self.input_rep_cfg.get("hop_length", 256),
-                    n_chroma=self.input_rep_cfg.get("n_chroma", 12),
+                    n_chroma=self.input_rep_cfg.get("n_chroma", 36),
                 ),
                 torchaudio.transforms.AmplitudeToDB(),
             )
@@ -78,7 +78,10 @@ class AudioDB(Dataset):
     def __len__(self):
         return len(self.names * self.fp_per_file)
 
-    def augment(self, y):
+    def augment(self, y, prob=1):
+        """Data augmentation function.
+        Probability controls if augmentation is applied. This
+        gives us the option to have anchors that are not augmented."""
         return y
 
     def __getitem__(self, idx):
@@ -104,10 +107,11 @@ class AudioDB(Dataset):
             y = np.concatenate([y, np.zeros(self.fp_hop * self.sr)])
 
         # run through augmentation chain
-        y_aug = self.augment(y)
+        y1_aug = self.augment(y, prob=0.5)
+        y2_aug = self.augment(y, prob=1)
 
-        # compute the desired representation
-        X = self.represent(y)
-        X_aug = self.represent(y_aug)
+        # compute the desired representations
+        X1 = self.represent(y1_aug)
+        X2 = self.represent(y2_aug)
 
-        return X, X_aug
+        return X1, X2
