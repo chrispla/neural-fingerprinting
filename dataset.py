@@ -4,9 +4,33 @@ from pathlib import Path
 
 import librosa
 import numpy as np
+import torch
 import torchaudio
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
+
+
+class ChromaSTFT(nn.Module):
+    """Wrap chroma_stft from librosa as PyTorch module
+    for convenience."""
+
+    def __init__(self, sr, n_fft, hop_length, n_chroma):
+        super(ChromaSTFT, self).__init__()
+        self.sr = sr
+        self.n_fft = n_fft
+        self.hop_length = hop_length
+        self.n_chroma = n_chroma
+
+    def forward(self, y):
+        y = y.numpy()
+        chroma = librosa.feature.chroma_stft(
+            y=y,
+            sr=self.sr,
+            n_fft=self.n_fft,
+            hop_length=self.hop_length,
+            n_chroma=self.n_chroma,
+        )
+        return torch.from_numpy(chroma)
 
 
 class AudioDB(Dataset):
@@ -25,7 +49,7 @@ class AudioDB(Dataset):
         # representation
         sr: int = 8000,
         input_rep: str = "mel",
-        input_rep_cfg: dict = None,
+        input_rep_cfg: dict = dict(),
         # fingerprint
         fp_len: float = 0.5,  # in seconds
     ):
@@ -65,14 +89,11 @@ class AudioDB(Dataset):
                 torchaudio.transforms.AmplitudeToDB(),
             )
         elif self.input_rep == "chromagram":
-            self.represent = nn.Sequential(
-                torchaudio.transforms.ChromaSTFT(
-                    sample_rate=self.sr,
-                    n_fft=self.input_rep_cfg.get("n_fft", 1024),
-                    hop_length=self.input_rep_cfg.get("hop_length", 256),
-                    n_chroma=self.input_rep_cfg.get("n_chroma", 36),
-                ),
-                torchaudio.transforms.AmplitudeToDB(),
+            self.represent = ChromaSTFT(
+                sr=self.sr,
+                n_fft=self.input_rep_cfg.get("n_fft", 1024),
+                hop_length=self.input_rep_cfg.get("hop_length", 256),
+                n_chroma=self.input_rep_cfg.get("n_chroma", 36),
             )
 
     def __len__(self):
@@ -111,7 +132,12 @@ class AudioDB(Dataset):
         y2_aug = self.augment(y, prob=1)
 
         # compute the desired representations
-        X1 = self.represent(y1_aug)
-        X2 = self.represent(y2_aug)
+        X1 = self.represent(torch.from_numpy(y1_aug))
+        X2 = self.represent(torch.from_numpy(y2_aug))
 
         return X1, X2
+
+    def get_loader(self, batch_size=32, shuffle=True, num_workers=0):
+        return DataLoader(
+            self, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers
+        )
