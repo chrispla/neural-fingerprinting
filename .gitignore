@@ -169,3 +169,9 @@ test.py
 
 # ignore data
 data/
+
+# vscode
+.vscode/
+
+# ignore logs
+logs/

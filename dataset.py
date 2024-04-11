@@ -51,7 +51,7 @@ class AudioDB(Dataset):
         input_rep: str = "mel",
         input_rep_cfg: dict = dict(),
         # fingerprint
-        fp_len: float = 0.5,  # in seconds
+        fp_len: float = 1,  # in seconds
     ):
         self.root = Path(root)
         self.sr = sr
@@ -60,10 +60,11 @@ class AudioDB(Dataset):
         self.input_rep_cfg = input_rep_cfg
         self.fp_len = fp_len
         self.fp_hop = self.fp_len / 2  # fixed hop size
+        self.target_duration = target_duration
 
         # get filepaths as keys, indexed by names
         self.filepaths = {
-            fp.stem: fp for fp in list(self.root.glob(f"*.{self.filetype}"))
+            fp.stem: str(fp) for fp in list(self.root.glob(f"*.{self.filetype}"))
         }
         self.names = list(self.filepaths.keys())
 
@@ -81,7 +82,7 @@ class AudioDB(Dataset):
                     n_fft=self.input_rep_cfg.get("n_fft", 1024),
                     win_length=self.input_rep_cfg.get("win_length", 1024),
                     hop_length=self.input_rep_cfg.get("hop_length", 256),
-                    n_mels=self.input_rep_cfg.get("n_mels", 256),
+                    n_mels=self.input_rep_cfg.get("n_mels", 64),
                     f_min=self.input_rep_cfg.get("f_min", 300),
                     f_max=self.input_rep_cfg.get("f_max", 4000),
                     power=self.input_rep_cfg.get("power", 1.0),
@@ -109,31 +110,37 @@ class AudioDB(Dataset):
         name = self.names[idx // self.fp_per_file]
         idx_in_file = idx % self.fp_per_file
 
-        start_sec = idx_in_file * self.fp_hop - self.fp.hop  # remember padding
+        start_sec = idx_in_file * self.fp_hop - self.fp_hop  # remember padding
 
-        # librosa allows us to load a specific part of a wav file.
-        # It will handle negative seconds in the offset and durations
-        # longer than the audio duration by loading just the audio
-        # that does exist. We'll handle padding after.
-        y, _ = librosa.load(
-            self.filepaths[name],
-            sr=self.sr,
-            offset=start_sec,
-            duration=self.fp_len,
-        )
+        waveform, sample_rate = torchaudio.load(self.filepaths[name])
 
-        if start_sec < 0:
-            y = np.concatenate([np.zeros(self.fp_hop * self.sr), y])
-        elif start_sec + self.fp_len > self.target_duration:
-            y = np.concatenate([y, np.zeros(self.fp_hop * self.sr)])
+        # Resample the audio if the sample rate is not the same as self.sr
+        if sample_rate != self.sr:
+            resampler = torchaudio.transforms.Resample(
+                orig_freq=sample_rate, new_freq=self.sr
+            )
+            waveform = resampler(waveform)
+
+        # Trim or pad the audio
+        start_sample = int(start_sec * self.sr)
+        end_sample = start_sample + int(self.fp_len * self.sr)
+        if start_sample < 0:
+            padding = torch.zeros((waveform.shape[0], -start_sample))
+            waveform = torch.cat((padding, waveform), dim=-1)
+            start_sample = 0
+        if end_sample > waveform.shape[-1]:
+            padding = torch.zeros((waveform.shape[0], end_sample - waveform.shape[-1]))
+            waveform = torch.cat((waveform, padding), dim=-1)
+
+        y = waveform[:, start_sample:end_sample]
 
         # run through augmentation chain
         y1_aug = self.augment(y, prob=0.5)
         y2_aug = self.augment(y, prob=1)
 
         # compute the desired representations
-        X1 = self.represent(torch.from_numpy(y1_aug))
-        X2 = self.represent(torch.from_numpy(y2_aug))
+        X1 = self.represent(y1_aug)
+        X2 = self.represent(y2_aug)
 
         return X1, X2
 
