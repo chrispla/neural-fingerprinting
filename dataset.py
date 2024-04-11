@@ -7,6 +7,7 @@ import numpy as np
 import soundfile as sf
 import torch
 import torchaudio
+from audiomentations import AddGaussianSNR, ClippingDistortion, Gain
 from torch import nn
 from torch.utils.data import DataLoader, Dataset
 
@@ -44,6 +45,8 @@ class AudioDB(Dataset):
     def __init__(
         self,
         root,
+        bg_dir="./bg",
+        augment=True,
         # audio
         filetype: str = "wav",
         target_duration: float = 30.0,  # in seconds
@@ -62,6 +65,9 @@ class AudioDB(Dataset):
         self.fp_len = fp_len
         self.fp_hop = self.fp_len / 2  # fixed hop size
         self.target_duration = target_duration
+        self.bg_paths = list(
+            Path(bg_dir).glob("*.wav")
+        )  # get all files for background mix
 
         # get filepaths as keys, indexed by names
         self.filepaths = {
@@ -101,11 +107,36 @@ class AudioDB(Dataset):
     def __len__(self):
         return len(self.names * self.fp_per_file)
 
-    def augment(self, y, prob=1):
+    def waveform_augment(self, y, sr, prob=1):
         """Data augmentation function.
+        Probability controls if each augmentation is applied. This
+        gives us the option to have anchors that are not augmented."""
+        transform = AddGaussianSNR(min_snr_in_db=0, max_snr_in_db=20, p=prob)
+        y = transform(y, sr)
+        transform = ClippingDistortion(max_percentile_threshold=10, p=prob)
+        y = transform(y, sr)
+        transform = Gain(min_gain_in_db=-15, max_gain_in_db=15, p=prob)
+        # background mix
+        if np.random.rand() < prob:
+            y_bg, og_sr = sf.read(self.filepaths[np.random.choice(self.names)])
+            y_bg = librosa.resample(y_bg, orig_sr=og_sr, target_sr=sr)
+            # get a random crop of length fp_len
+            start = np.random.randint(0, len(y_bg) - len(y))
+            # get random mix percentage over 0.5
+            mix = np.random.rand() * 0.5 + 0.5
+            y = y * mix + y_bg[start : start + len(y)] * (1 - mix)
+
+        return y
+
+    def spect_augment(self, X, prob=1):
+        """Data augmentation function for spectrograms.
         Probability controls if augmentation is applied. This
         gives us the option to have anchors that are not augmented."""
-        return y
+        # set a random rectangle of area between 10% and 50% to zero
+        if np.random.rand() < prob:
+            mask = np.random.rand(*X.shape) < 0.5
+            X[mask] = 0
+        return X
 
     def __getitem__(self, idx):
         name = self.names[idx // self.fp_per_file]
@@ -129,20 +160,25 @@ class AudioDB(Dataset):
 
         assert len(y) == self.fp_len * self.sr
 
-        # run through augmentation chain
-        y1_aug = self.augment(y, prob=0.5)
-        y2_aug = self.augment(y, prob=1)
+        if len(y.shape) == 1:
+            y = np.expand_dims(y, 0)
 
-        if len(y1_aug.shape) == 1:
-            y1_aug = np.expand_dims(y1_aug, 0)
-        if len(y2_aug.shape) == 1:
-            y2_aug = np.expand_dims(y2_aug, 0)
+        if self.augment:
+            # run through augmentation chain
+            y1_aug = self.augment(y, sr, prob=0.75)
+            y2_aug = self.augment(y, sr, prob=1)
 
-        # compute the desired representations
-        X1 = self.represent(torch.from_numpy(y1_aug).float())
-        X2 = self.represent(torch.from_numpy(y2_aug).float())
+            # compute the desired representations
+            X1 = self.represent(torch.from_numpy(y1_aug).float())
+            X2 = self.represent(torch.from_numpy(y2_aug).float())
 
-        return X1, X2
+            # compute spect-based augmentations
+            X1_aug = self.spect_augment(X1, prob=0.5)
+            X2_aug = self.spect_augment(X2, prob=1)
+
+            return X1_aug, X2_aug
+
+        return self.represent(torch.from_numpy(y).float())
 
     def get_loader(self, batch_size=32, shuffle=True, num_workers=0):
         return DataLoader(
