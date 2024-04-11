@@ -3,6 +3,7 @@
 import argparse
 from pathlib import Path
 
+import numpy as np
 import torch
 from tqdm import tqdm
 
@@ -26,7 +27,7 @@ device = "cuda" if torch.cuda.is_available() else "cpu"
 model.to(device)
 model.eval()
 
-emb_dir = Path("db/fp/")
+emb_dir = Path(args.out_dir)
 emb_dir.mkdir(exist_ok=True)
 
 for i, batch in tqdm(
@@ -38,4 +39,4 @@ for i, batch in tqdm(
         y = model(x)
     for j, emb in enumerate(y):
         # save using emb index to be able to retrieve segment during query
-        torch.save(emb, emb_dir / f"{i*16+j}.pt")
+        np.save(emb_dir / f"{i * batch_size + j}.npy", emb.cpu().numpy())

@@ -101,4 +101,4 @@ for epoch in range(100):  # Number of epochs
     wandb.log({"epoch": epoch + 1, "loss": loss})
 
     if (epoch + 1) % 2 == 0:
-        torch.save(model.state_dict(), f"ckpt/model_{epoch + 1}.pth")
+        torch.save(model.state_dict(), f"ckpt/model_{epoch + 1}_loss_{loss:.4f}.pt")
