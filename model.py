@@ -1,5 +1,7 @@
-"""VGGish encoder, adapted from:
-https://github.com/minzwon/sota-music-tagging-models"""
+"""Simple VGGish-like encoder, modified from:
+https://github.com/minzwon/sota-music-tagging-models
+This modification has just 5 layers, and a projection layer
+for contrastive learning."""
 
 import torch
 from torch import nn
@@ -68,6 +70,7 @@ class VGGlike(nn.Module):
 
 
 if __name__ == "__main__":
+    # test forward pass
     from dataset import AudioDB
 
     model = VGGlike()

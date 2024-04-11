@@ -1,4 +1,7 @@
+"""Train the VGGish-like model using contrastive learning"""
+
 from datetime import datetime
+from pathlib import Path
 
 import torch
 import torch.nn.functional as F
@@ -87,6 +90,8 @@ model = model.to(device)
 dataloader = AudioDB(root="data/database_recordings").get_loader(
     batch_size=128, num_workers=22, shuffle=True
 )
+
+Path("ckpt").mkdir(exist_ok=True)
 
 for epoch in range(100):  # Number of epochs
     loss = train(model, dataloader, optimizer, device)

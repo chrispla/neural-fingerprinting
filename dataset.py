@@ -80,11 +80,11 @@ class AudioDB(Dataset):
         }
         self.names = list(self.filepaths.keys())
 
-        # Each file has multiple fingerprints. We'll use an index that maps
-        # each fingerprint to the corresponding file and position within it.
-        # We'll pad the start and end of each file to ensure all parts of the
-        # file are seen in 2 fingerprints. It should also help with performance
-        # at the start and end of the queries where there might be silence.
+        """Each file has multiple fingerprints. We'll use an index that maps
+        each fingerprint to the corresponding file and position within it.
+        We'll pad the start and end of each file to ensure all parts of the
+        file are seen in 2 fingerprints. It should also help with performance
+        at the start and end of the queries where there might be silence."""
         self.fp_per_file = int(target_duration / self.fp_hop)
 
         if self.input_rep == "mel":
@@ -176,6 +176,7 @@ class AudioDB(Dataset):
             y1_aug = self.waveform_augment(y, sr, prob=0.75)
             y2_aug = self.waveform_augment(y, sr, prob=1)
 
+            # pad again just in case, augmentations can mess length up
             if y1_aug.shape[1] != self.fp_len_samples:
                 y1_aug = np.pad(
                     y1_aug,
