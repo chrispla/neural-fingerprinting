@@ -80,7 +80,11 @@ if __name__ == "__main__":
     model.to(device)
 
     dataset = AudioDB(root="data/database_recordings", input_rep="mel")
-    dataloader = dataset.get_loader(batch_size=32, num_workers=4, shuffle=True)
+    dataloader = dataset.get_loader(batch_size=32, num_workers=4, shuffle=False)
 
+    counter = 0
     for X1, X2 in dataloader:
-        model(X1.to(device))
+        print(X1.shape, X2.shape)
+        counter += 1
+        if counter > 10:
+            exit()

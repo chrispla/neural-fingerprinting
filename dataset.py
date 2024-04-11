@@ -4,6 +4,7 @@ from pathlib import Path
 
 import librosa
 import numpy as np
+import soundfile as sf
 import torch
 import torchaudio
 from torch import nn
@@ -112,35 +113,34 @@ class AudioDB(Dataset):
 
         start_sec = idx_in_file * self.fp_hop - self.fp_hop  # remember padding
 
-        waveform, sample_rate = torchaudio.load(self.filepaths[name])
+        y, sr = sf.read(self.filepaths[name])
 
-        # Resample the audio if the sample rate is not the same as self.sr
-        if sample_rate != self.sr:
-            resampler = torchaudio.transforms.Resample(
-                orig_freq=sample_rate, new_freq=self.sr
-            )
-            waveform = resampler(waveform)
+        start_sr = int(start_sec * sr)
+        start_sr = max(0, start_sr)  # to account for padding
+        y = y[start_sr : int((start_sec + self.fp_len) * sr)]
+        if sr != self.sr:
+            # resample
+            y = librosa.resample(y, orig_sr=sr, target_sr=self.sr)
 
-        # Trim or pad the audio
-        start_sample = int(start_sec * self.sr)
-        end_sample = start_sample + int(self.fp_len * self.sr)
-        if start_sample < 0:
-            padding = torch.zeros((waveform.shape[0], -start_sample))
-            waveform = torch.cat((padding, waveform), dim=-1)
-            start_sample = 0
-        if end_sample > waveform.shape[-1]:
-            padding = torch.zeros((waveform.shape[0], end_sample - waveform.shape[-1]))
-            waveform = torch.cat((waveform, padding), dim=-1)
+        if start_sec < 0:
+            y = np.concatenate([np.zeros(int(self.fp_hop * self.sr)), y])
+        elif start_sec + self.fp_len > self.target_duration:
+            y = np.concatenate([y, np.zeros(int(self.fp_hop * self.sr))])
 
-        y = waveform[:, start_sample:end_sample]
+        assert len(y) == self.fp_len * self.sr
 
         # run through augmentation chain
         y1_aug = self.augment(y, prob=0.5)
         y2_aug = self.augment(y, prob=1)
 
+        if len(y1_aug.shape) == 1:
+            y1_aug = np.expand_dims(y1_aug, 0)
+        if len(y2_aug.shape) == 1:
+            y2_aug = np.expand_dims(y2_aug, 0)
+
         # compute the desired representations
-        X1 = self.represent(y1_aug)
-        X2 = self.represent(y2_aug)
+        X1 = self.represent(torch.from_numpy(y1_aug).float())
+        X2 = self.represent(torch.from_numpy(y2_aug).float())
 
         return X1, X2
 
