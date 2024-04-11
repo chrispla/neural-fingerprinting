@@ -38,11 +38,9 @@ class VGG(nn.Module):
         self.layer3 = Conv_2d(n_channels, n_channels * 2, pooling=2)
         self.layer4 = Conv_2d(n_channels * 2, n_channels * 2, pooling=2)
         self.layer5 = Conv_2d(n_channels * 2, n_channels * 2, pooling=2)
-        self.layer6 = Conv_2d(n_channels * 2, n_channels * 2, pooling=2)
-        # self.layer7 = Conv_2d(n_channels * 2, n_channels * 4, pooling=2)
 
         # projection layer for contrastive learning
-        self.dense1 = nn.Linear(n_channels * 4, 128)
+        self.dense1 = nn.Linear(512, 128)
         self.bn = nn.BatchNorm1d(128)
         self.relu = nn.ReLU()
         self.dropout = nn.Dropout(0.5)
@@ -54,14 +52,11 @@ class VGG(nn.Module):
         x = self.layer3(x)
         x = self.layer4(x)
         x = self.layer5(x)
-        x = self.layer6(x)
-        # x = self.layer7(x)
-        x = x.squeeze(2)
 
-        # Global Max Pooling
-        if x.size(-1) != 1:
-            x = nn.MaxPool1d(x.size(-1))(x)
-        x = x.squeeze(2)
+        x = x.squeeze(3)
+
+        # from batch, 256, 2 to batch, 256*2
+        x = x.permute(0, 2, 1).contiguous().view(-1, x.size(1) * x.size(2))
 
         # Dense
         x = self.dense1(x)
@@ -82,9 +77,6 @@ if __name__ == "__main__":
     dataset = AudioDB(root="data/database_recordings", input_rep="mel")
     dataloader = dataset.get_loader(batch_size=32, num_workers=4, shuffle=False)
 
-    counter = 0
     for X1, X2 in dataloader:
-        print(X1.shape, X2.shape)
-        counter += 1
-        if counter > 10:
-            exit()
+        proj1, proj2 = model(X1.to(device)), model(X2.to(device))
+        exit()
