@@ -1,9 +1,18 @@
+from datetime import datetime
+
 import torch
 import torch.nn.functional as F
 from torch import optim
+from tqdm import tqdm
 
+import wandb
 from dataset import AudioDB
 from model import VGGlike
+
+run_name = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+# Initialize a new wandb run
+wandb.init(project="neuralfp", name=run_name)
 
 # Define the model
 model = VGGlike()
@@ -13,6 +22,9 @@ optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = model.to(device)
+
+# Log the model's architecture to wandb
+wandb.watch(model)
 
 
 # Define the contrastive loss function
@@ -34,7 +46,12 @@ def train(model, dataloader, optimizer, device):
     model.train()
     total_loss = 0
 
-    for batch in dataloader:
+    # Add a progress bar
+    progress_bar = tqdm(
+        dataloader, desc="Training", total=len(dataloader), leave=True, ncols=80
+    )
+
+    for batch in progress_bar:
         x1, x2 = batch
         x1, x2 = x1.to(device), x2.to(device)
 
@@ -54,6 +71,12 @@ def train(model, dataloader, optimizer, device):
 
         total_loss += loss.item()
 
+        # Update the progress bar
+        progress_bar.set_postfix({"loss": total_loss / (progress_bar.n + 1)})
+
+        # Log the loss to wandb
+        wandb.log({"loss": total_loss / (progress_bar.n + 1)})
+
     return total_loss / len(dataloader)
 
 
@@ -62,9 +85,15 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = model.to(device)
 
 dataloader = AudioDB(root="data/database_recordings").get_loader(
-    batch_size=32, num_workers=16
+    batch_size=128, num_workers=22, shuffle=True
 )
 
 for epoch in range(100):  # Number of epochs
     loss = train(model, dataloader, optimizer, device)
     print(f"Epoch {epoch + 1}, Loss: {loss}")
+
+    # Log the epoch and loss to wandb
+    wandb.log({"epoch": epoch + 1, "loss": loss})
+
+    if (epoch + 1) % 2 == 0:
+        torch.save(model.state_dict(), f"ckpt/model_{epoch + 1}.pth")

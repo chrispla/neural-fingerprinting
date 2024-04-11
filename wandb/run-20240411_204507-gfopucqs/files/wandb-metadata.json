@@ -1,0 +1,208 @@
+{
+    "os": "Linux-6.5.0-26-generic-x86_64-with-glibc2.35",
+    "python": "3.10.14",
+    "heartbeatAt": "2024-04-11T19:45:09.646040",
+    "startedAt": "2024-04-11T19:45:07.688301",
+    "docker": null,
+    "cuda": null,
+    "args": [],
+    "state": "running",
+    "program": "/home/chris/dev/mi/neural-fingerprinting/train.py",
+    "codePathLocal": "train.py",
+    "codePath": "train.py",
+    "git": {
+        "remote": "git@github.com:chrispla/neural-fingerprinting.git",
+        "commit": "d5872b2cbe1fba89b890bd66079b171aefa16416"
+    },
+    "email": "cplachouras@gmail.com",
+    "root": "/home/chris/dev/mi/neural-fingerprinting",
+    "host": "dell",
+    "username": "chris",
+    "executable": "/home/chris/miniconda3/envs/dl/bin/python",
+    "cpu_count": 24,
+    "cpu_count_logical": 32,
+    "cpu_freq": {
+        "current": 1.1568124999999996,
+        "min": 800.0,
+        "max": 4575.0
+    },
+    "cpu_freq_per_core": [
+        {
+            "current": 5.135,
+            "min": 800.0,
+            "max": 5200.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 5200.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 5200.0
+        },
+        {
+            "current": 4.952,
+            "min": 800.0,
+            "max": 5200.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 5200.0
+        },
+        {
+            "current": 3.095,
+            "min": 800.0,
+            "max": 5200.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 5200.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 5200.0
+        },
+        {
+            "current": 3.757,
+            "min": 800.0,
+            "max": 5400.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 5400.0
+        },
+        {
+            "current": 3.897,
+            "min": 800.0,
+            "max": 5400.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 5400.0
+        },
+        {
+            "current": 3.638,
+            "min": 800.0,
+            "max": 5200.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 5200.0
+        },
+        {
+            "current": 4.448,
+            "min": 800.0,
+            "max": 5200.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 5200.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 1.394,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.936,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.869,
+            "min": 800.0,
+            "max": 3900.0
+        },
+        {
+            "current": 0.8,
+            "min": 800.0,
+            "max": 3900.0
+        }
+    ],
+    "disk": {
+        "/": {
+            "total": 878.2146263122559,
+            "used": 799.2187232971191
+        }
+    },
+    "gpu": "NVIDIA GeForce RTX 4070 Laptop GPU",
+    "gpu_count": 1,
+    "gpu_devices": [
+        {
+            "name": "NVIDIA GeForce RTX 4070 Laptop GPU",
+            "memory_total": 8585740288
+        }
+    ],
+    "memory": {
+        "total": 15.297191619873047
+    }
+}

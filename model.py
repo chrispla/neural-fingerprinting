@@ -24,13 +24,13 @@ class Conv_2d(nn.Module):
         return out
 
 
-class VGG(nn.Module):
+class VGGlike(nn.Module):
 
     def __init__(
         self,
         n_channels=128,
     ):
-        super(VGG, self).__init__()
+        super(VGGlike, self).__init__()
 
         # CNN
         self.layer1 = Conv_2d(1, n_channels, pooling=2)
@@ -70,7 +70,7 @@ class VGG(nn.Module):
 if __name__ == "__main__":
     from dataset import AudioDB
 
-    model = VGG()
+    model = VGGlike()
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
 

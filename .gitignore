@@ -175,3 +175,6 @@ data/
 
 # ignore logs
 logs/
+
+misc/
+ckpt/

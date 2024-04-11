@@ -46,7 +46,7 @@ class AudioDB(Dataset):
         self,
         root,
         bg_dir="./bg",
-        augment=True,
+        augmentations=True,
         # audio
         filetype: str = "wav",
         target_duration: float = 30.0,  # in seconds
@@ -63,11 +63,16 @@ class AudioDB(Dataset):
         self.input_rep = input_rep
         self.input_rep_cfg = input_rep_cfg
         self.fp_len = fp_len
+        self.fp_len_samples = self.fp_len * self.sr
         self.fp_hop = self.fp_len / 2  # fixed hop size
         self.target_duration = target_duration
-        self.bg_paths = list(
-            Path(bg_dir).glob("*.wav")
-        )  # get all files for background mix
+        self.augmentations = augmentations
+        try:
+            self.bg_paths = list(
+                Path(bg_dir).glob("*.wav")
+            )  # get all files for background mix
+        except:
+            self.bg_paths = None
 
         # get filepaths as keys, indexed by names
         self.filepaths = {
@@ -122,6 +127,9 @@ class AudioDB(Dataset):
             y_bg = librosa.resample(y_bg, orig_sr=og_sr, target_sr=sr)
             # get a random crop of length fp_len
             start = np.random.randint(0, len(y_bg) - len(y))
+            # if less than fp_len, pad with zeros
+            if start + len(y) > len(y_bg):
+                y_bg = np.pad(y_bg, (0, len(y) - len(y_bg) + start))
             # get random mix percentage over 0.5
             mix = np.random.rand() * 0.5 + 0.5
             y = y * mix + y_bg[start : start + len(y)] * (1 - mix)
@@ -158,15 +166,30 @@ class AudioDB(Dataset):
         elif start_sec + self.fp_len > self.target_duration:
             y = np.concatenate([y, np.zeros(int(self.fp_hop * self.sr))])
 
-        assert len(y) == self.fp_len * self.sr
+        y = y.astype(np.float32)
 
         if len(y.shape) == 1:
             y = np.expand_dims(y, 0)
 
-        if self.augment:
+        if self.augmentations:
             # run through augmentation chain
-            y1_aug = self.augment(y, sr, prob=0.75)
-            y2_aug = self.augment(y, sr, prob=1)
+            y1_aug = self.waveform_augment(y, sr, prob=0.75)
+            y2_aug = self.waveform_augment(y, sr, prob=1)
+
+            if y1_aug.shape[1] != self.fp_len_samples:
+                y1_aug = np.pad(
+                    y1_aug,
+                    ((0, 0), (0, self.fp_len_samples - y1_aug.shape[1])),
+                    mode="constant",
+                )
+                y1_aug = y1_aug[:, : self.fp_len_samples]
+            if y2_aug.shape[1] != self.fp_len_samples:
+                y2_aug = np.pad(
+                    y2_aug,
+                    ((0, 0), (0, self.fp_len_samples - y2_aug.shape[1])),
+                    mode="constant",
+                )
+                y2_aug = y2_aug[:, : self.fp_len_samples]
 
             # compute the desired representations
             X1 = self.represent(torch.from_numpy(y1_aug).float())
