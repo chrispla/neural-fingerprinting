@@ -56,9 +56,11 @@ class AudioDB(Dataset):
         input_rep_cfg: dict = dict(),
         # fingerprint
         fp_len: float = 1,  # in seconds
+        debug=False,
     ):
         self.root = Path(root)
         self.sr = sr
+        self.debug = debug  # True returns audio files
         self.filetype = filetype
         self.input_rep = input_rep
         self.input_rep_cfg = input_rep_cfg
@@ -200,11 +202,32 @@ class AudioDB(Dataset):
             X1_aug = self.spect_augment(X1, prob=0.5)
             X2_aug = self.spect_augment(X2, prob=1)
 
-            return X1_aug, X2_aug
+            if not self.debug:
+                return (
+                    X1_aug,
+                    X2_aug,
+                )
+            else:
+                return X1_aug, X2_aug, y1_aug, y2_aug
 
-        return self.represent(torch.from_numpy(y).float())
+        if not self.debug:
+            return self.represent(torch.from_numpy(y).float())
+        else:
+            return self.represent(torch.from_numpy(y).float()), y
 
     def get_loader(self, batch_size=32, shuffle=True, num_workers=0):
         return DataLoader(
             self, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers
         )
+
+
+if __name__ == "__main__":
+    # test dataloader
+    dataset = AudioDB(root="data/database_recordings", debug=True)
+    dataloader = dataset.get_loader(batch_size=128, num_workers=22, shuffle=True)
+    for i, (X1, X2, y1, y2) in enumerate(dataloader):
+        # save the two audio files
+        sf.write(f"y1_{i}.wav", y1[0][0].numpy(), 8000)
+        sf.write(f"y2_{i}.wav", y2[0][0].numpy(), 8000)
+        if i >= 3:
+            break
