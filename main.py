@@ -14,7 +14,12 @@ from model import VGGlike
 
 
 def fingerprintBuilder(audio_dir, fp_dir, batch_size=16):
-    """Do inference and save embeddings to fp_dir."""
+    """Do inference and save embeddings to fp_dir.
+
+    Args:
+        audio_dir (str): Path to the directory containing the audio files.
+        fp_dir (str): Path to the directory where the embeddings will be saved.
+        batch_size (int): Batch size for inference."""
     Path(fp_dir).mkdir(exist_ok=True)
 
     model = VGGlike()
@@ -22,7 +27,7 @@ def fingerprintBuilder(audio_dir, fp_dir, batch_size=16):
     dataloader = dataset.get_loader(batch_size=batch_size, shuffle=False, num_workers=8)
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device)
-    checkpoint = torch.load("ckpt/model_90_loss_2.2881.pt", map_location=device)
+    checkpoint = torch.load("model_ckpt.pt", map_location=device)
     model.load_state_dict(checkpoint)
     model.eval()
 
@@ -47,7 +52,12 @@ def fingerprintBuilder(audio_dir, fp_dir, batch_size=16):
 
 def audioIdentification(query_dir, fp_dir, output_path):
     """Do identification of files in a query db, based on the extracted
-    fingerprints in fp_dir. Save results to output_path."""
+    fingerprints in fp_dir. Save results to output_path.
+
+    Args:
+        query_dir (str): Path to the directory containing the query audio files.
+        fp_dir (str): Path to the directory containing the fingerprints.
+        output_path (str): Path to the file where the results will be saved."""
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -85,7 +95,7 @@ def audioIdentification(query_dir, fp_dir, output_path):
     # load the model
     model = VGGlike()
     model.to(device)
-    checkpoint = torch.load("ckpt/model_90_loss_2.2881.pt", map_location=device)
+    checkpoint = torch.load("model_ckpt.pt", map_location=device)
     model.load_state_dict(checkpoint)
     model.eval()
 
