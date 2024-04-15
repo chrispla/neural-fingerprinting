@@ -211,7 +211,7 @@ class AudioDB(Dataset):
                 return X1_aug, X2_aug, y1_aug, y2_aug
 
         if not self.debug:
-            return self.represent(torch.from_numpy(y).float())
+            return self.represent(torch.from_numpy(y).float()), name
         else:
             return self.represent(torch.from_numpy(y).float()), y
 
