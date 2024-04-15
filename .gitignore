@@ -175,7 +175,10 @@ data/
 
 # ignore logs
 logs/
-
 misc/
 ckpt/
 wandb
+results.txt
+
+# ignore fp db
+db

@@ -8,7 +8,7 @@ First, you need to install the requirements in a python environment:
 
 ```pip install -r requirements.txt```
 
-Otherwise, you could try a luck with an existing environment that has `torch`, `torchaudio`, `librosa`, `numpy`, and `scikit-learn`.
+Otherwise, you could try your luck with an existing environment that has `torch`, `torchaudio`, `librosa`, `numpy`, and `scikit-learn`.
 
 
 Then, you can run the fingerprint database builder in your python file:
