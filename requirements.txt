@@ -1,0 +1,5 @@
+torch
+numpy
+librosa
+scikit-learn
+torchaudio
